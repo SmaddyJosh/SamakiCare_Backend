@@ -1,0 +1,5 @@
+Django>=4.2,<5.0
+Pillow>=10.0
+tensorflow>=2.13.0
+numpy>=1.24.0
+kagglehub
