@@ -109,8 +109,13 @@ async def predict(file: UploadFile = File(...)):
     is_healthy = any(kw in top_cls.lower() for kw in HEALTHY_KEYWORDS)
     low_conf   = top_conf < CONFIDENCE_THRESHOLD
 
+    # Sum all the probabilities of the 'diseased' classes combined
+    disease_prob = sum(p["confidence"] for p in all_preds if not any(kw in p["label"].lower() for kw in HEALTHY_KEYWORDS))
+
     if low_conf:
         status, message = "uncertain", f"The model is not confident enough (only {top_conf*100:.1f}%). Please upload a clearer photo."
+    elif is_healthy and disease_prob >= 0.35:
+        status, message = "uncertain", f"⚠️ Fish looks mostly healthy but has suspicious disease traits (combined {disease_prob*100:.1f}% probability of disease). Inspect closely!"
     elif is_healthy:
         status, message = "healthy", f"✅ The fish appears healthy ({top_conf*100:.1f}% confidence)."
     else:

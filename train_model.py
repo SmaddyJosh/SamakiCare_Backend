@@ -26,7 +26,8 @@ import uuid
 # You can add as many as you find on Kaggle!
 datasets = [
     "utpoldas/freshwater-fish-disease-dataset",
-    "subirbiswas19/freshwater-fish-disease-aquaculture-in-south-asia"
+    "subirbiswas19/freshwater-fish-disease-aquaculture-in-south-asia",
+    "faizakram/fish-disease-image-datasets"
 ]
 
 COMBINED_RAW_DIR = "combined_raw_data"
