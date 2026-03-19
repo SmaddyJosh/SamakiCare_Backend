@@ -73,6 +73,7 @@ def confidence_label(conf: float) -> str:
     return "LOW"
 
 @app.post("/predict", response_model=PredictionResponse)
+@app.post("//predict", response_model=PredictionResponse, include_in_schema=False)
 async def predict(file: UploadFile = File(...)):
     if not file.content_type.startswith("image/"):
         raise HTTPException(400, "Please upload an image file")
