@@ -1,4 +1,6 @@
-Django>=4.2,<5.0
+fastapi>=0.111.0
+uvicorn>=0.30.0
+python-multipart>=0.0.9
 Pillow>=10.0
 tensorflow>=2.13.0
 numpy>=1.24.0
