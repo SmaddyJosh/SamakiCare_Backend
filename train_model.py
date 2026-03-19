@@ -20,9 +20,17 @@ import seaborn as sns
 
 
 import kagglehub
-path = kagglehub.dataset_download("utpoldas/freshwater-fish-disease-dataset")
-print("📦 Dataset path:", path)
+import uuid
 
+# 1. Provide a list of Kaggle datasets you want to combine
+# You can add as many as you find on Kaggle!
+datasets = [
+    "utpoldas/freshwater-fish-disease-dataset",
+    "subirbiswas19/freshwater-fish-disease-aquaculture-in-south-asia"
+]
+
+COMBINED_RAW_DIR = "combined_raw_data"
+os.makedirs(COMBINED_RAW_DIR, exist_ok=True)
 
 def find_image_root(base):
     for root, dirs, files in os.walk(base):
@@ -32,8 +40,36 @@ def find_image_root(base):
             return os.path.dirname(root) if os.path.basename(root) != base else root
     return base
 
-raw_root = find_image_root(path)
-print("🗂️  Image root:", raw_root)
+print("🚀 Starting multi-dataset download and merge...")
+for ds in datasets:
+    try:
+        print(f"📦 Downloading dataset: {ds}")
+        path = kagglehub.dataset_download(ds)
+        ds_root = find_image_root(path)
+        print(f"🗂️  Image root found at: {ds_root}")
+        
+        # Merge folders (classes) into COMBINED_RAW_DIR
+        for d in os.listdir(ds_root):
+            src_dir = os.path.join(ds_root, d)
+            if os.path.isdir(src_dir):
+                # Clean up class names so "Healthy", "healthy_fish", etc converge nicely
+                clean_class = d.lower().replace(" ", "_").replace("-", "_")
+                if "healthy" in clean_class or "normal" in clean_class:
+                    clean_class = "healthy"
+                
+                dest_dir = os.path.join(COMBINED_RAW_DIR, clean_class)
+                os.makedirs(dest_dir, exist_ok=True)
+                
+                # Copy images over with a unique prefix to prevent overwriting
+                for img in os.listdir(src_dir):
+                    if img.lower().endswith(('.jpg', '.jpeg', '.png')):
+                        new_name = f"{uuid.uuid4().hex[:8]}_{img}"
+                        shutil.copy2(os.path.join(src_dir, img), os.path.join(dest_dir, new_name))
+    except Exception as e:
+        print(f"⚠️ Could not process dataset {ds}: {e}")
+
+raw_root = COMBINED_RAW_DIR
+print(f"✅ Data combined into: {raw_root}")
 
 
 classes = sorted([
