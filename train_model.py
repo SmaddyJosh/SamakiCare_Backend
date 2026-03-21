@@ -11,7 +11,7 @@ import os, json, shutil, random
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers
-from tensorflow.keras.applications import EfficientNetB3
+from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau, CSVLogger
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import matplotlib.pyplot as plt
@@ -22,8 +22,6 @@ import seaborn as sns
 import kagglehub
 import uuid
 
-# 1. Provide a list of Kaggle datasets you want to combine
-# You can add as many as you find on Kaggle!
 datasets = [
     "utpoldas/freshwater-fish-disease-dataset",
     "subirbiswas19/freshwater-fish-disease-aquaculture-in-south-asia",
@@ -41,13 +39,13 @@ def find_image_root(base):
             return os.path.dirname(root) if os.path.basename(root) != base else root
     return base
 
-print("🚀 Starting multi-dataset download and merge...")
+print(" Starting multi-dataset download and merge...")
 for ds in datasets:
     try:
-        print(f"📦 Downloading dataset: {ds}")
+        print(f" Downloading dataset: {ds}")
         path = kagglehub.dataset_download(ds)
         ds_root = find_image_root(path)
-        print(f"🗂️  Image root found at: {ds_root}")
+        print(f" Image root found at: {ds_root}")
         
         # Merge folders (classes) into COMBINED_RAW_DIR
         for d in os.listdir(ds_root):
@@ -67,24 +65,24 @@ for ds in datasets:
                         new_name = f"{uuid.uuid4().hex[:8]}_{img}"
                         shutil.copy2(os.path.join(src_dir, img), os.path.join(dest_dir, new_name))
     except Exception as e:
-        print(f"⚠️ Could not process dataset {ds}: {e}")
+        print(f" Could not process dataset {ds}: {e}")
 
 raw_root = COMBINED_RAW_DIR
-print(f"✅ Data combined into: {raw_root}")
+print(f" Data combined into: {raw_root}")
 
 
 classes = sorted([
     d for d in os.listdir(raw_root)
     if os.path.isdir(os.path.join(raw_root, d))
 ])
-print(f"🐟 Classes found ({len(classes)}): {classes}")
+print(f" Classes found ({len(classes)}): {classes}")
 
 
 SPLIT_DIR  = "fish_split"
 VAL_RATIO  = 0.2
 IMAGE_SIZE = (224, 224)
 BATCH_SIZE = 32
-EPOCHS     = 50
+EPOCHS     = 3
 OUTPUT_DIR = "model_output"
 SEED       = 42
 
@@ -106,7 +104,7 @@ for cls in classes:
         if not os.path.exists(dst):
             shutil.copy2(os.path.join(src, img), dst)
 
-print("✅ Train/val split ready.")
+print("Train/val split ready.")
 
 
 train_gen = ImageDataGenerator(
@@ -143,7 +141,7 @@ counts = np.bincount(train_gen.classes)
 class_weights = {i: len(train_gen.classes)/(NUM_CLASSES*c) for i,c in enumerate(counts)}
 
 
-base = EfficientNetB3(weights="imagenet", include_top=False,
+base = MobileNetV2(weights="imagenet", include_top=False,
                       input_shape=(*IMAGE_SIZE, 3))
 base.trainable = False
 
@@ -175,9 +173,9 @@ cbs  = [
 ]
 print("\n🚀 Phase 1: training head …")
 h1 = model.fit(train_gen, validation_data=val_gen, epochs=EPOCHS,
-               class_weight=class_weights, callbacks=cbs)
+               class_weight=class_weights, callbacks=cbs, verbose=2)
 
-# ── 7. Phase 2 — fine-tune ────────────────────────────────────
+
 base.trainable = True
 for layer in base.layers[:100]:
     layer.trainable = False
@@ -195,18 +193,18 @@ cbs2 = [
 ]
 print("\n🔓 Phase 2: fine-tuning …")
 h2 = model.fit(train_gen, validation_data=val_gen, epochs=EPOCHS,
-               class_weight=class_weights, callbacks=cbs2)
+               class_weight=class_weights, callbacks=cbs2, verbose=2)
 
-# ── 8. Save & evaluate ────────────────────────────────────────
+
 model.save(os.path.join(OUTPUT_DIR, "fish_disease_model.keras"))
 
 # Also export as TF SavedModel (easier to serve)
 model.export(os.path.join(OUTPUT_DIR, "saved_model"))
-print(f"\n✅ Model saved to {OUTPUT_DIR}/")
+print(f"\nModel saved to {OUTPUT_DIR}/")
 
 # Classification report
 val_gen.reset()
-preds = model.predict(val_gen, verbose=1)
+preds = model.predict(val_gen, verbose=2)
 y_pred = np.argmax(preds, axis=1)
 y_true = val_gen.classes
 print("\n📋 Classification Report:")
