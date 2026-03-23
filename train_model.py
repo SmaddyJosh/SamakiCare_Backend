@@ -1,11 +1,11 @@
-"""
-Fish Disease Detection — Training Script
-Dataset: utpoldas/freshwater-fish-disease-dataset (via kagglehub)
 
-Run:
-    pip install kagglehub tensorflow pillow matplotlib scikit-learn
-    python train_model.py
-"""
+#Fish Disease Detection — Training Script
+#data discovery
+#data augmentation
+#handling imbalance
+#model architecture efficient<net -image classification
+#training the head first, then fine-tuning
+#confusion matrix and training curves for evaluation
 
 import os, json, shutil, random
 import numpy as np
@@ -21,7 +21,7 @@ import seaborn as sns
 
 import kagglehub
 import uuid
-
+#***data collection ***
 datasets = [
     "utpoldas/freshwater-fish-disease-dataset",
     "subirbiswas19/freshwater-fish-disease-aquaculture-in-south-asia",
@@ -29,6 +29,7 @@ datasets = [
 ]
 
 COMBINED_RAW_DIR = "combined_raw_data"
+#***structure the data in a way that is easy to work with for training***
 os.makedirs(COMBINED_RAW_DIR, exist_ok=True)
 
 def find_image_root(base):
@@ -46,12 +47,12 @@ for ds in datasets:
         path = kagglehub.dataset_download(ds)
         ds_root = find_image_root(path)
         print(f" Image root found at: {ds_root}")
-        
+        #***Data split ***
         # Merge folders (classes) into COMBINED_RAW_DIR
         for d in os.listdir(ds_root):
             src_dir = os.path.join(ds_root, d)
             if os.path.isdir(src_dir):
-                # Clean up class names so "Healthy", "healthy_fish", etc converge nicely
+             
                 clean_class = d.lower().replace(" ", "_").replace("-", "_")
                 if "healthy" in clean_class or "normal" in clean_class:
                     clean_class = "healthy"
@@ -70,7 +71,7 @@ for ds in datasets:
 raw_root = COMBINED_RAW_DIR
 print(f" Data combined into: {raw_root}")
 
-
+#**dta augementation and preparation for training**
 classes = sorted([
     d for d in os.listdir(raw_root)
     if os.path.isdir(os.path.join(raw_root, d))
@@ -95,6 +96,7 @@ for split in ("train", "val"):
 
 for cls in classes:
     src = os.path.join(raw_root, cls)
+    #handle imbalance by ensuring at least one image goes to validation, even for small classes**
     imgs = [f for f in os.listdir(src) if f.lower().endswith(('.jpg','.jpeg','.png'))]
     random.shuffle(imgs)
     n_val = max(1, int(len(imgs) * VAL_RATIO))
@@ -171,6 +173,7 @@ cbs  = [
     ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=4, min_lr=1e-7),
     CSVLogger(os.path.join(OUTPUT_DIR, "phase1_log.csv")),
 ]
+#we train new layers 
 print("\n🚀 Phase 1: training head …")
 h1 = model.fit(train_gen, validation_data=val_gen, epochs=EPOCHS,
                class_weight=class_weights, callbacks=cbs, verbose=2)
@@ -191,6 +194,7 @@ cbs2 = [
     ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=4, min_lr=1e-8),
     CSVLogger(os.path.join(OUTPUT_DIR, "phase2_log.csv")),
 ]
+#help see the fish better
 print("\n🔓 Phase 2: fine-tuning …")
 h2 = model.fit(train_gen, validation_data=val_gen, epochs=EPOCHS,
                class_weight=class_weights, callbacks=cbs2, verbose=2)

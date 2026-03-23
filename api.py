@@ -115,12 +115,12 @@ async def predict(file: UploadFile = File(...)):
     if low_conf:
         status, message = "uncertain", f"The model is not confident enough (only {top_conf*100:.1f}%). Please upload a clearer photo."
     elif is_healthy and disease_prob >= 0.35:
-        status, message = "uncertain", f"⚠️ Fish looks mostly healthy but has suspicious disease traits (combined {disease_prob*100:.1f}% probability of disease). Inspect closely!"
+        status, message = "uncertain", f" Fish looks mostly healthy but has suspicious disease traits (combined {disease_prob*100:.1f}% probability of disease). Inspect closely!"
     elif is_healthy:
-        status, message = "healthy", f"✅ The fish appears healthy ({top_conf*100:.1f}% confidence)."
+        status, message = "healthy", f"The fish appears healthy ({top_conf*100:.1f}% confidence)."
     else:
         clean = top_cls.replace("_", " ").title()
-        status, message = "diseased", f"⚠️ Possible condition detected: {clean} ({top_conf*100:.1f}% confidence). Consult an aquatic vet."
+        status, message = "diseased", f"Possible condition detected: {clean} ({top_conf*100:.1f}% confidence). Consult an aquatic vet."
 
     return PredictionResponse(
         top_class=top_cls, is_healthy=is_healthy, confidence=round(top_conf, 4),
