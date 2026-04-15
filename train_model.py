@@ -83,7 +83,7 @@ SPLIT_DIR  = "fish_split"
 VAL_RATIO  = 0.2
 IMAGE_SIZE = (224, 224)
 BATCH_SIZE = 32
-EPOCHS     = 3
+EPOCHS     = 30
 OUTPUT_DIR = "model_output"
 SEED       = 42
 
